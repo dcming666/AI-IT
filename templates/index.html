@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} - AI技术支持助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h1>{{ company_name }} AI助手</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="showStats()">
+                    <i class="fas fa-chart-bar"></i> 统计
+                </button>
+                <button class="btn btn-secondary" onclick="showAdmin()">
+                    <i class="fas fa-cog"></i> 管理
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要内容 -->
+        <main class="main-content">
+            <!-- 聊天区域 -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h2><i class="fas fa-comments"></i> 技术支持对话</h2>
+                    <p>请描述您遇到的技术问题，AI助手将为您提供解决方案</p>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <!-- 欢迎消息 -->
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                您好！我是{{ company_name }}的AI技术支持助手。我可以帮助您解决各种IT技术问题，包括：
+                                <ul>
+                                    <li>网络连接问题</li>
+                                    <li>软件使用问题</li>
+                                    <li>硬件故障排查</li>
+                                    <li>系统配置问题</li>
+                                </ul>
+                                请描述您遇到的问题，我会尽力为您提供帮助！
+                            </div>
+                            <div class="message-time">现在</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 输入区域 -->
+                <div class="chat-input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="questionInput" 
+                            placeholder="请描述您的技术问题..."
+                            rows="3"
+                            maxlength="500"
+                        ></textarea>
+                        <div class="input-actions">
+                            <span class="char-count" id="charCount">0/500</span>
+                            <button class="btn btn-primary" id="sendBtn" onclick="sendQuestion()">
+                                <i class="fas fa-paper-plane"></i> 发送
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 统计信息模态框 -->
+        <div id="statsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-chart-bar"></i> 系统统计</h3>
+                    <span class="close" onclick="closeModal('statsModal')">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalInteractions">-</div>
+                            <div class="stat-label">总交互数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="escalatedCount">-</div>
+                            <div class="stat-label">转人工数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="avgConfidence">-</div>
+                            <div class="stat-label">平均置信度</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="knowledgeCount">-</div>
+                            <div class="stat-label">知识库条目</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理界面模态框 -->
+        <div id="adminModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-cog"></i> 知识库管理</h3>
+                    <span class="close" onclick="closeModal('adminModal')">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="admin-tabs">
+                        <button class="tab-btn active" onclick="switchTab('add')">添加知识</button>
+                        <button class="tab-btn" onclick="switchTab('list')">知识列表</button>
+                    </div>
+                    
+                    <!-- 添加知识标签页 -->
+                    <div id="addTab" class="tab-content active">
+                        <form id="knowledgeForm">
+                            <div class="form-group">
+                                <label for="title">标题</label>
+                                <input type="text" id="title" name="title" required maxlength="255">
+                            </div>
+                            <div class="form-group">
+                                <label for="category">分类</label>
+                                <select id="category" name="category">
+                                    <option value="">选择分类</option>
+                                    <option value="网络">网络</option>
+                                    <option value="软件">软件</option>
+                                    <option value="硬件">硬件</option>
+                                    <option value="系统">系统</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="content">内容</label>
+                                <textarea id="content" name="content" rows="6" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">添加知识条目</button>
+                        </form>
+                    </div>
+                    
+                    <!-- 知识列表标签页 -->
+                    <div id="listTab" class="tab-content">
+                        <div class="knowledge-list" id="knowledgeList">
+                            <!-- 知识条目将在这里动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
