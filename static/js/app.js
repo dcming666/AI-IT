@@ -1,5 +1,6 @@
 // 全局变量
 let currentInteractionId = null;
+let currentFeedbackData = null; // 存储当前反馈数据
 
 // DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -78,14 +79,14 @@ async function sendQuestion() {
         
         if (response.ok) {
             // 添加AI回复
-            addAIMessage(data.response, data.confidence, data.sources, data.ticket_id, data.escalated);
+            addAIMessage(data.response, data.confidence, data.sources, data.ticket_id, data.escalated, data.interaction_id, data.answer_type);
         } else {
             throw new Error(data.error || '请求失败');
         }
         
     } catch (error) {
         console.error('发送问题失败:', error);
-        addAIMessage('抱歉，处理您的问题时出现错误，请稍后重试。', 0, [], null, false);
+        addAIMessage('抱歉，处理您的问题时出现错误，请稍后重试。', 0, [], null, false, null, 'ai_only');
         showNotification('发送失败，请重试', 'error');
     } finally {
         // 恢复发送按钮
@@ -120,7 +121,7 @@ function addUserMessage(question) {
 }
 
 // 添加AI消息
-function addAIMessage(response, confidence, sources, ticketId, escalated) {
+function addAIMessage(response, confidence, sources, ticketId, escalated, interactionId, answerType) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai-message';
@@ -130,8 +131,28 @@ function addAIMessage(response, confidence, sources, ticketId, escalated) {
         minute: '2-digit' 
     });
     
-    // 构建消息内容
-    let messageContent = escapeHtml(response);
+    // 使用Markdown渲染回答内容
+    let messageContent = marked.parse(response);
+    
+    // 根据答案类型添加不同的标识
+    let sourceInfo = '';
+    if (answerType === 'knowledge_base') {
+        sourceInfo = `<div class="source-info knowledge-source">
+            <i class="fas fa-database"></i> 答案来源：知识库
+        </div>`;
+    } else if (answerType === 'hybrid') {
+        sourceInfo = `<div class="source-info hybrid-source">
+            <i class="fas fa-database"></i> 知识库 + <i class="fas fa-robot"></i> AI补充
+        </div>`;
+    } else if (answerType === 'ai_only') {
+        sourceInfo = `<div class="source-info ai-source">
+            <i class="fas fa-robot"></i> AI生成答案
+        </div>`;
+    } else if (answerType === 'improved') {
+        sourceInfo = `<div class="source-info hybrid-source">
+            <i class="fas fa-star"></i> 根据反馈改进的答案
+        </div>`;
+    }
     
     // 添加置信度信息
     if (confidence > 0) {
@@ -140,25 +161,52 @@ function addAIMessage(response, confidence, sources, ticketId, escalated) {
     
     // 添加来源信息
     if (sources && sources.length > 0) {
-        messageContent += `<div class="sources-info">参考来源: ${sources.join(', ')}</div>`;
+        messageContent += `<div class="sources-info">
+            <i class="fas fa-book"></i> 参考来源: ${sources.join(', ')}
+        </div>`;
     }
     
-    // 添加工单信息
+    // 如果有工单ID，显示单独的通知
     if (ticketId) {
-        messageContent += `<div class="ticket-info">工单号: ${ticketId}</div>`;
+        showNotification(`由于置信度较低，已为您创建工单 ${ticketId}，技术人员将尽快联系您。`, 'info', 8000);
     }
+    
+    // 添加满意度评价
+    const ratingHtml = `
+        <div class="rating-container">
+            <div class="rating-label">这个回答对您有帮助吗？</div>
+            <div class="rating-stars" data-interaction-id="${interactionId}">
+                <i class="fas fa-star" data-rating="1" title="非常不满意"></i>
+                <i class="fas fa-star" data-rating="2" title="不满意"></i>
+                <i class="fas fa-star" data-rating="3" title="一般"></i>
+                <i class="fas fa-star" data-rating="4" title="满意"></i>
+                <i class="fas fa-star" data-rating="5" title="非常满意"></i>
+            </div>
+            <div class="rating-actions">
+                <button class="btn btn-sm btn-outline" onclick="requestRevision('${interactionId}')">
+                    <i class="fas fa-redo"></i> 重新回答
+                </button>
+            </div>
+        </div>
+    `;
     
     messageDiv.innerHTML = `
         <div class="message-avatar">
             <i class="fas fa-robot"></i>
         </div>
         <div class="message-content">
+            ${sourceInfo}
             <div class="message-text">${messageContent}</div>
             <div class="message-time">${currentTime}</div>
+            ${ratingHtml}
         </div>
     `;
     
     chatMessages.appendChild(messageDiv);
+    
+    // 绑定星级评价事件
+    bindRatingEvents(messageDiv, interactionId);
+    
     scrollToBottom();
 }
 
@@ -168,37 +216,397 @@ function scrollToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 显示统计信息
-async function showStats() {
-    const modal = document.getElementById('statsModal');
-    modal.style.display = 'block';
+// 绑定星级评价事件
+function bindRatingEvents(messageDiv, interactionId) {
+    const stars = messageDiv.querySelectorAll('.rating-stars i');
+    const ratingContainer = messageDiv.querySelector('.rating-container');
     
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            
+            // 如果是3星及以下，显示自定义弹窗
+            if (rating <= 3) {
+                showFeedbackModal(interactionId, rating, messageDiv);
+            } else {
+                // 4-5星，只提交评分
+                submitRating(interactionId, rating, messageDiv);
+            }
+        });
+        
+        star.addEventListener('mouseenter', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            highlightStars(stars, rating);
+        });
+    });
+    
+    const ratingStars = messageDiv.querySelector('.rating-stars');
+    ratingStars.addEventListener('mouseleave', function() {
+        resetStars(stars);
+    });
+}
+
+// 高亮星级
+function highlightStars(stars, rating) {
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('active');
+        } else {
+            star.classList.remove('active');
+        }
+    });
+}
+
+// 重置星级
+function resetStars(stars) {
+    stars.forEach(star => {
+        star.classList.remove('active');
+    });
+}
+
+// 提交评分
+async function submitRating(interactionId, rating, messageDiv) {
     try {
-        const response = await fetch('/admin/stats');
-        const stats = await response.json();
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                interaction_id: interactionId,
+                score: rating
+            })
+        });
         
         if (response.ok) {
-            document.getElementById('totalInteractions').textContent = stats.total_interactions || 0;
-            document.getElementById('escalatedCount').textContent = stats.escalated_count || 0;
-            document.getElementById('avgConfidence').textContent = (stats.avg_confidence || 0) + '%';
-            document.getElementById('knowledgeCount').textContent = stats.knowledge_count || 0;
+            // 显示评分成功
+            const ratingContainer = messageDiv.querySelector('.rating-container');
+            if (ratingContainer) {
+                ratingContainer.innerHTML = `
+                    <div class="rating-success">
+                        <i class="fas fa-check-circle"></i>
+                        感谢您的评价！
+                    </div>
+                `;
+            }
+            
+            showNotification('评分提交成功', 'success');
         } else {
-            throw new Error(stats.error || '获取统计信息失败');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || '评分提交失败');
         }
     } catch (error) {
-        console.error('获取统计信息失败:', error);
-        showNotification('获取统计信息失败', 'error');
+        console.error('提交评分失败:', error);
+        showNotification('评分提交失败，请重试', 'error');
     }
 }
 
-// 显示管理界面
-function showAdmin() {
-    const modal = document.getElementById('adminModal');
-    modal.style.display = 'block';
-    
-    // 默认显示添加知识标签页
-    switchTab('add');
+// 请求重新回答
+async function requestRevision(interactionId) {
+    try {
+        const response = await fetch('/api/revise', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                interaction_id: interactionId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // 添加新的AI回复
+            addAIMessage(data.response, data.confidence, data.sources, data.ticket_id, data.escalated, data.interaction_id, data.answer_type);
+            showNotification('正在重新生成回答...', 'info');
+        } else {
+            throw new Error(data.error || '重新回答失败');
+        }
+    } catch (error) {
+        console.error('请求重新回答失败:', error);
+        showNotification('重新回答失败，请重试', 'error');
+    }
 }
+
+// 根据满意度评分重新回答
+async function requestRevisionWithFeedback(interactionId, feedbackScore) {
+    try {
+        const response = await fetch('/api/revise', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                interaction_id: interactionId,
+                feedback_score: feedbackScore
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // 添加新的AI回复
+            addAIMessage(data.response, data.confidence, data.sources, data.ticket_id, data.escalated, data.interaction_id, data.answer_type);
+            
+            // 根据满意度评分显示不同的提示
+            if (feedbackScore <= 3) {
+                showNotification('正在根据您的反馈改进回答...', 'info');
+            } else {
+                showNotification('正在重新生成回答...', 'info');
+            }
+        } else {
+            throw new Error(data.error || '重新回答失败');
+        }
+    } catch (error) {
+        console.error('请求重新回答失败:', error);
+        showNotification('重新回答失败，请重试', 'error');
+    }
+}
+
+// 显示满意度反馈弹窗
+function showFeedbackModal(interactionId, rating, messageDiv) {
+    // 存储当前反馈数据
+    currentFeedbackData = {
+        interactionId: interactionId,
+        rating: rating,
+        messageDiv: messageDiv
+    };
+    
+    // 更新弹窗内容
+    const feedbackRatingElement = document.getElementById('feedbackRating');
+    const feedbackMessageElement = document.getElementById('feedbackMessage');
+    
+    if (feedbackRatingElement && feedbackMessageElement) {
+        feedbackRatingElement.textContent = rating;
+        
+        // 根据评分调整消息内容
+        let message = '';
+        if (rating === 1) {
+            message = '您给出了1星评价，表示对回答非常不满意。';
+        } else if (rating === 2) {
+            message = '您给出了2星评价，表示对回答不满意。';
+        } else {
+            message = '您给出了3星评价，表示对回答一般满意。';
+        }
+        
+        feedbackMessageElement.innerHTML = message + '<br>是否希望我根据您的反馈重新生成一个更好的回答？';
+        
+        // 显示弹窗
+        document.getElementById('feedbackModal').style.display = 'block';
+    } else {
+        console.error('反馈模态框元素未找到');
+        // 如果模态框元素不存在，直接提交评分
+        submitRating(interactionId, rating, messageDiv);
+    }
+}
+
+// 关闭满意度反馈弹窗
+function closeFeedbackModal() {
+    document.getElementById('feedbackModal').style.display = 'none';
+    currentFeedbackData = null;
+}
+
+// 确认反馈重新回答
+function confirmFeedbackRevision() {
+    if (currentFeedbackData) {
+        const { interactionId, rating, messageDiv } = currentFeedbackData;
+        
+        // 先提交评分
+        submitRating(interactionId, rating, messageDiv);
+        
+        // 延迟一下再重新回答，确保评分已保存
+        setTimeout(() => {
+            requestRevisionWithFeedback(interactionId, rating);
+        }, 500);
+        
+        // 关闭弹窗
+        closeFeedbackModal();
+    }
+}
+
+// 显示统计信息
+function showStats() {
+    fetch('/admin/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalInteractions').textContent = data.total_interactions || 0;
+            document.getElementById('escalatedCount').textContent = data.escalated_count || 0;
+            document.getElementById('avgConfidence').textContent = (data.avg_confidence || 0) + '%';
+            document.getElementById('knowledgeCount').textContent = data.knowledge_count || 0;
+            document.getElementById('statsModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('获取统计信息失败:', error);
+            alert('获取统计信息失败');
+        });
+}
+
+// 显示知识库
+function showKnowledgeBase() {
+    document.getElementById('knowledgeModal').style.display = 'block';
+    loadKnowledgeList();
+    loadCategories();
+}
+
+// 加载知识库列表
+function loadKnowledgeList(page = 1, search = '', category = '') {
+    const params = new URLSearchParams({
+        page: page,
+        page_size: 10,
+        search: search,
+        category: category,
+        sort_by: 'updated'
+    });
+    
+    fetch(`/admin/knowledge/list?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            renderKnowledgeList(data.items);
+            updatePagination(data.page, data.total_pages);
+            currentPage = data.page;
+            currentSearch = search;
+            currentCategory = category;
+        })
+        .catch(error => {
+            console.error('加载知识库失败:', error);
+            document.getElementById('knowledgeList').innerHTML = '<p class="error-message">加载知识库失败</p>';
+        });
+}
+
+// 渲染知识库列表
+function renderKnowledgeList(items) {
+    const container = document.getElementById('knowledgeList');
+    
+    if (!items || items.length === 0) {
+        container.innerHTML = '<p class="no-data">暂无知识库数据</p>';
+        return;
+    }
+    
+    const html = items.map(item => `
+        <div class="knowledge-item" onclick="showKnowledgeDetail(${item.id})">
+            <div class="item-header">
+                <h4 class="item-title">${escapeHtml(item.title)}</h4>
+                <span class="category-badge">${escapeHtml(item.category)}</span>
+            </div>
+            <div class="item-content">
+                ${escapeHtml(item.content.substring(0, 150))}${item.content.length > 150 ? '...' : ''}
+            </div>
+            <div class="item-footer">
+                <span class="item-tags">${item.tags ? item.tags.split(',').map(tag => `<span class="tag">${escapeHtml(tag.trim())}</span>`).join('') : ''}</span>
+                <span class="item-date">${formatDate(item.updated_at)}</span>
+            </div>
+            <div class="item-actions">
+                <button class="btn-view" onclick="event.stopPropagation(); showKnowledgeDetail(${item.id})">
+                    <i class="fas fa-eye"></i> 查看详情
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+// 显示知识详情
+function showKnowledgeDetail(knowledgeId) {
+    fetch(`/admin/knowledge/${knowledgeId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('获取知识详情失败: ' + data.error);
+                return;
+            }
+            
+            document.getElementById('detailTitle').textContent = data.title;
+            document.getElementById('detailCategory').textContent = data.category;
+            document.getElementById('detailTags').textContent = data.tags || '无标签';
+            document.getElementById('detailContent').innerHTML = formatContent(data.content);
+            document.getElementById('detailCreated').textContent = formatDate(data.created_at);
+            document.getElementById('detailUpdated').textContent = formatDate(data.updated_at);
+            
+            document.getElementById('knowledgeDetailModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('获取知识详情失败:', error);
+            alert('获取知识详情失败');
+        });
+}
+
+// 加载分类列表
+function loadCategories() {
+    fetch('/admin/categories')
+        .then(response => response.json())
+        .then(categories => {
+            const select = document.getElementById('categoryFilter');
+            select.innerHTML = '<option value="">所有分类</option>';
+            
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('加载分类失败:', error);
+        });
+}
+
+// 搜索知识库
+function searchKnowledge() {
+    const searchTerm = document.getElementById('knowledgeSearch').value;
+    loadKnowledgeList(1, searchTerm, currentCategory);
+}
+
+// 按分类筛选
+function filterByCategory() {
+    const category = document.getElementById('categoryFilter').value;
+    loadKnowledgeList(1, currentSearch, category);
+}
+
+// 分页相关变量
+let currentPage = 1;
+let currentSearch = '';
+let currentCategory = '';
+
+// 切换页面
+function changePage(delta) {
+    const newPage = currentPage + delta;
+    if (newPage >= 1) {
+        loadKnowledgeList(newPage, currentSearch, currentCategory);
+    }
+}
+
+// 更新分页信息
+function updatePagination(page, totalPages) {
+    document.getElementById('pageInfo').textContent = `第 ${page} 页，共 ${totalPages} 页`;
+    document.getElementById('prevPage').disabled = page <= 1;
+    document.getElementById('nextPage').disabled = page >= totalPages;
+}
+
+// 格式化内容（支持Markdown）
+function formatContent(content) {
+    // 简单的Markdown格式化
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+}
+
+// 工具函数
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '未知';
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN');
+}
+
 
 // 关闭模态框
 function closeModal(modalId) {
@@ -224,7 +632,7 @@ function switchTab(tabName) {
     
     // 如果是知识列表标签页，加载数据
     if (tabName === 'list') {
-        loadKnowledgeList();
+        loadAdminKnowledgeList();
     }
 }
 
@@ -256,7 +664,7 @@ async function addKnowledgeItem() {
             document.getElementById('knowledgeForm').reset();
             // 刷新知识列表
             if (document.getElementById('listTab').classList.contains('active')) {
-                loadKnowledgeList();
+                loadAdminKnowledgeList();
             }
         } else {
             throw new Error(data.error || '添加失败');
@@ -268,8 +676,8 @@ async function addKnowledgeItem() {
     }
 }
 
-// 加载知识列表
-async function loadKnowledgeList() {
+// 加载管理界面的知识列表
+async function loadAdminKnowledgeList() {
     const knowledgeList = document.getElementById('knowledgeList');
     
     try {
@@ -348,6 +756,10 @@ window.addEventListener('click', function(event) {
     modals.forEach(modal => {
         if (event.target === modal) {
             modal.style.display = 'none';
+            // 如果是反馈弹窗，清除数据
+            if (modal.id === 'feedbackModal') {
+                currentFeedbackData = null;
+            }
         }
     });
 });

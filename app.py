@@ -34,9 +34,14 @@ def index():
     """主页面"""
     return render_template('index.html', company_name=Config.COMPANY_NAME)
 
+@app.route('/admin')
+def admin_dashboard():
+    """管理后台主页面"""
+    return render_template('admin.html', company_name=Config.COMPANY_NAME)
+
 @app.route('/api/ask', methods=['POST'])
 def ask_question():
-    """处理用户问题"""
+    """处理用户问题，实现知识库优先的智能回复"""
     try:
         data = request.get_json()
         question = data.get('question', '').strip()
@@ -44,30 +49,48 @@ def ask_question():
         if not question:
             return jsonify({'error': '问题不能为空'}), 400
         
-        if len(question) > Config.MAX_QUESTION_LENGTH:
-            return jsonify({'error': f'问题长度不能超过{Config.MAX_QUESTION_LENGTH}字符'}), 400
-        
-        # 获取或创建会话ID
-        if 'session_id' not in session:
-            session['session_id'] = str(uuid.uuid4())
-        
-        # 获取用户ID（这里简化处理，实际项目中应该从认证系统获取）
-        user_id = session.get('user_id', 'anonymous')
+        # 生成会话ID和用户ID
+        session_id = str(uuid.uuid4())
+        user_id = "anonymous"  # 可以根据需要修改为实际的用户ID
         
         # 使用增强版RAG引擎处理问题
-        result = enhanced_rag_engine.process_question(question, session['session_id'], user_id)
+        result = enhanced_rag_engine.process_question(question, session_id, user_id)
         
-        return jsonify({
+        # 记录交互到数据库
+        interaction_id = None
+        try:
+            interaction_id = db_manager.add_interaction(
+                session_id=session_id,
+                user_id=user_id,
+                question=question,
+                ai_response=result['answer'],
+                confidence=result['confidence'],
+                is_escalated=result['escalated'],
+                ticket_id=result['ticket_id']
+            )
+        except Exception as e:
+            logger.error(f"记录交互失败: {e}")
+        
+        # 构建响应
+        response_data = {
             'response': result['answer'],
             'confidence': result['confidence'],
             'sources': result['sources'],
-            'ticket_id': result.get('ticket_id'),
-            'escalated': result.get('escalated', False)
-        })
+            'answer_type': result['answer_type'],
+            'ticket_id': result['ticket_id'],
+            'escalated': result['escalated'],
+            'interaction_id': interaction_id
+        }
+        
+        # 如果有工单，显示通知信息
+        if result['ticket_id']:
+            response_data['notification'] = f"由于置信度较低，已为您创建工单 {result['ticket_id']}，技术人员将尽快联系您。"
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logger.error(f"处理问题失败: {e}")
-        return jsonify({'error': '服务器内部错误'}), 500
+        return jsonify({'error': '处理问题失败，请稍后重试'}), 500
 
 @app.route('/api/feedback', methods=['POST'])
 def submit_feedback():
@@ -89,24 +112,100 @@ def submit_feedback():
         logger.error(f"提交反馈失败: {e}")
         return jsonify({'error': '服务器内部错误'}), 500
 
-@app.route('/admin/knowledge', methods=['GET', 'POST'])
-def manage_knowledge():
-    """知识库管理页面"""
-    if request.method == 'GET':
-        return render_template('admin_knowledge.html', company_name=Config.COMPANY_NAME)
-    
-    # POST请求：添加知识条目
+@app.route('/api/revise', methods=['POST'])
+def revise_answer():
+    """重新生成回答（支持满意度反馈）"""
+    try:
+        data = request.get_json()
+        interaction_id = data.get('interaction_id')
+        feedback_score = data.get('feedback_score')  # 新增：获取满意度评分
+        
+        if not interaction_id:
+            return jsonify({'error': '参数错误'}), 400
+        
+        # 获取原始交互记录
+        original_interaction = db_manager.get_interaction_by_id(interaction_id)
+        if not original_interaction:
+            return jsonify({'error': '交互记录不存在'}), 404
+        
+        # 如果有满意度评分，先更新到数据库
+        if feedback_score is not None:
+            db_manager.update_feedback(interaction_id, feedback_score)
+        
+        # 重新处理问题，传入满意度反馈
+        result = enhanced_rag_engine.process_question(
+            original_interaction['question'], 
+            original_interaction['session_id'], 
+            original_interaction['user_id'],
+            feedback_score  # 传入满意度评分
+        )
+        
+        return jsonify({
+            'response': result['answer'],
+            'confidence': result['confidence'],
+            'sources': result['sources'],
+            'ticket_id': result.get('ticket_id'),
+            'escalated': result.get('escalated', False),
+            'interaction_id': result.get('interaction_id'),
+            'answer_type': result.get('answer_type', 'ai_only')
+        })
+        
+    except Exception as e:
+        logger.error(f"重新生成回答失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+# 管理后台API路由
+@app.route('/admin/stats')
+def admin_stats():
+    """获取管理后台统计信息"""
+    try:
+        stats = db_manager.get_admin_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"获取管理统计信息失败: {e}")
+        return jsonify({'error': '获取统计信息失败'}), 500
+
+@app.route('/admin/knowledge/list')
+def admin_knowledge_list():
+    """获取分页知识库列表"""
+    try:
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 10))
+        search = request.args.get('search', '').strip()
+        category = request.args.get('category', '').strip()
+        sort_by = request.args.get('sort_by', 'updated')
+        
+        result = db_manager.get_knowledge_list_paginated(
+            page, page_size, search, category, sort_by
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"获取知识库列表失败: {e}")
+        return jsonify({'error': '获取知识库列表失败'}), 500
+
+@app.route('/admin/knowledge', methods=['POST'])
+def admin_add_knowledge():
+    """添加知识条目"""
     try:
         data = request.get_json()
         title = data.get('title', '').strip()
-        content = data.get('content', '').strip()
         category = data.get('category', '').strip()
+        content = data.get('content', '').strip()
+        tags = data.get('tags', '').strip()
         
-        if not title or not content:
-            return jsonify({'error': '标题和内容不能为空'}), 400
+        if not title or not category or not content:
+            return jsonify({'error': '标题、分类和内容不能为空'}), 400
+        
+        if len(title) > 200:
+            return jsonify({'error': '标题长度不能超过200字符'}), 400
+        
+        if len(content) > 10000:
+            return jsonify({'error': '内容长度不能超过10000字符'}), 400
         
         # 添加知识条目
-        knowledge_id = db_manager.add_knowledge_item(title, content, category)
+        knowledge_id = db_manager.add_knowledge(title, category, content, tags)
         
         return jsonify({
             'message': '知识条目添加成功',
@@ -115,27 +214,105 @@ def manage_knowledge():
         
     except Exception as e:
         logger.error(f"添加知识条目失败: {e}")
-        return jsonify({'error': '服务器内部错误'}), 500
+        return jsonify({'error': '添加知识条目失败'}), 500
 
-@app.route('/admin/stats')
-def get_stats():
-    """获取系统统计信息"""
+@app.route('/admin/knowledge/<int:knowledge_id>', methods=['GET'])
+def admin_get_knowledge(knowledge_id):
+    """获取单个知识条目"""
     try:
-        stats = db_manager.get_interaction_stats()
-        return jsonify(stats)
+        knowledge = db_manager.get_knowledge_by_id(knowledge_id)
+        if not knowledge:
+            return jsonify({'error': '知识条目不存在'}), 404
+        
+        return jsonify(knowledge)
+        
     except Exception as e:
-        logger.error(f"获取统计信息失败: {e}")
-        return jsonify({'error': '服务器内部错误'}), 500
+        logger.error(f"获取知识条目失败: {e}")
+        return jsonify({'error': '获取知识条目失败'}), 500
 
-@app.route('/admin/knowledge/list')
-def list_knowledge():
-    """获取知识库列表"""
+@app.route('/admin/knowledge/<int:knowledge_id>', methods=['PUT'])
+def admin_update_knowledge(knowledge_id):
+    """更新知识条目"""
     try:
-        knowledge_list = db_manager.get_knowledge_list()
-        return jsonify(knowledge_list)
+        data = request.get_json()
+        title = data.get('title', '').strip()
+        category = data.get('category', '').strip()
+        content = data.get('content', '').strip()
+        tags = data.get('tags', '').strip()
+        
+        # 参数验证
+        if not title or not category or not content:
+            return jsonify({'error': '标题、分类和内容不能为空'}), 400
+        
+        if len(title) > 200:
+            return jsonify({'error': '标题长度不能超过200字符'}), 400
+        
+        if len(content) > 10000:
+            return jsonify({'error': '内容长度不能超过10000字符'}), 400
+        
+        # 检查知识条目是否存在
+        existing = db_manager.get_knowledge_by_id(knowledge_id)
+        if not existing:
+            return jsonify({'error': '知识条目不存在'}), 404
+        
+        # 更新知识条目
+        db_manager.update_knowledge(knowledge_id, title, category, content, tags)
+        
+        return jsonify({'message': '知识条目更新成功'})
+        
     except Exception as e:
-        logger.error(f"获取知识库列表失败: {e}")
-        return jsonify({'error': '服务器内部错误'}), 500
+        logger.error(f"更新知识条目失败: {e}")
+        return jsonify({'error': '更新知识条目失败'}), 500
+
+@app.route('/admin/knowledge/<int:knowledge_id>', methods=['DELETE'])
+def admin_delete_knowledge(knowledge_id):
+    """删除知识条目"""
+    try:
+        # 检查知识条目是否存在
+        existing = db_manager.get_knowledge_by_id(knowledge_id)
+        if not existing:
+            return jsonify({'error': '知识条目不存在'}), 404
+        
+        # 删除知识条目
+        db_manager.delete_knowledge(knowledge_id)
+        
+        return jsonify({'message': '知识条目删除成功'})
+        
+    except Exception as e:
+        logger.error(f"删除知识条目失败: {e}")
+        return jsonify({'error': '删除知识条目失败'}), 500
+
+@app.route('/admin/knowledge/import', methods=['POST'])
+def admin_import_knowledge():
+    """批量导入知识库"""
+    try:
+        data = request.get_json()
+        import_data = data.get('data', [])
+        
+        if not isinstance(import_data, list) or len(import_data) == 0:
+            return jsonify({'error': '导入数据格式不正确'}), 400
+        
+        # 批量导入知识条目
+        imported_count = db_manager.import_knowledge_batch(import_data)
+        
+        return jsonify({
+            'message': f'成功导入 {imported_count} 条知识条目',
+            'imported_count': imported_count
+        })
+        
+    except Exception as e:
+        logger.error(f"批量导入知识库失败: {e}")
+        return jsonify({'error': '批量导入失败'}), 500
+
+@app.route('/admin/categories')
+def admin_categories():
+    """获取所有分类列表"""
+    try:
+        categories = db_manager.get_all_categories()
+        return jsonify(categories)
+    except Exception as e:
+        logger.error(f"获取分类列表失败: {e}")
+        return jsonify({'error': '获取分类列表失败'}), 500
 
 @app.route('/api/health')
 def health_check():
@@ -154,29 +331,10 @@ def init_database():
         db_manager.create_tables()
         logger.info("数据库初始化成功")
         
-        # 添加一些示例知识条目
-        sample_knowledge = [
-            {
-                'title': '网络连接问题排查',
-                'content': '1. 检查网线连接是否正常\n2. 确认网络适配器已启用\n3. 运行网络诊断工具\n4. 重启网络设备',
-                'category': '网络'
-            },
-            {
-                'title': 'Outlook邮件配置',
-                'content': '1. 打开Outlook\n2. 添加新账户\n3. 输入邮箱地址和密码\n4. 选择IMAP或POP3协议\n5. 配置服务器设置',
-                'category': '软件'
-            },
-            {
-                'title': '打印机无法打印',
-                'content': '1. 检查打印机电源和连接\n2. 确认打印机驱动已安装\n3. 检查打印队列\n4. 重启打印服务',
-                'category': '硬件'
-            }
-        ]
-        
-        for item in sample_knowledge:
-            db_manager.add_knowledge_item(item['title'], item['content'], item['category'])
-        
-        logger.info("示例知识条目添加成功")
+        # 不再自动添加任何示例数据，让用户自己添加
+        knowledge_count = db_manager.get_knowledge_count()
+        logger.info(f"知识库当前有 {knowledge_count} 个条目")
+        logger.info("请通过管理界面添加您需要的知识条目")
         
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} - 知识库管理后台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 管理后台头部 -->
+        <header class="admin-header">
+            <div class="admin-logo">
+                <i class="fas fa-cog"></i>
+                <h1>{{ company_name }} 知识库管理后台</h1>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-arrow-left"></i> 返回首页
+                </button>
+                <button class="btn btn-primary" onclick="showAddKnowledgeModal()">
+                    <i class="fas fa-plus"></i> 添加知识
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="admin-main">
+            <!-- 统计概览 -->
+            <div class="admin-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalKnowledge">-</div>
+                        <div class="stat-label">知识条目总数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalCategories">-</div>
+                        <div class="stat-label">分类总数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="lastUpdated">-</div>
+                        <div class="stat-label">最后更新</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索和筛选 -->
+            <div class="search-filter">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索知识条目..." class="search-input">
+                    <button class="search-btn" onclick="searchKnowledge()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="filter-options">
+                    <select id="categoryFilter" class="filter-select" onchange="filterByCategory()">
+                        <option value="">所有分类</option>
+                    </select>
+                    <select id="sortBy" class="filter-select" onchange="sortKnowledge()">
+                        <option value="updated">按更新时间</option>
+                        <option value="title">按标题</option>
+                        <option value="category">按分类</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 知识库条目表格 -->
+            <div class="knowledge-table-container">
+                <h3><i class="fas fa-book"></i> 知识库条目</h3>
+                <div class="table-wrapper">
+                    <table class="knowledge-table">
+                        <thead>
+                            <tr>
+                                <th>标题</th>
+                                <th>分类</th>
+                                <th>内容预览</th>
+                                <th>标签</th>
+                                <th>更新时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="knowledgeTableBody">
+                            <!-- 知识条目将在这里动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+                
+                <!-- 分页 -->
+                <div class="pagination" id="pagination">
+                    <!-- 动态生成分页 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑知识模态框 -->
+    <div id="knowledgeModal" class="modal">
+        <div class="modal-content knowledge-modal">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-plus"></i> 添加知识条目</h3>
+                <span class="close" onclick="closeKnowledgeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="knowledgeForm">
+                    <input type="hidden" id="knowledgeId" name="id">
+                    
+                    <div class="form-group">
+                        <label for="knowledgeTitle">标题 *</label>
+                        <input type="text" id="knowledgeTitle" name="title" required 
+                               placeholder="请输入知识条目标题">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="knowledgeCategory">分类 *</label>
+                        <select id="knowledgeCategory" name="category" required>
+                            <option value="">请选择分类</option>
+                            <option value="网络问题">网络问题</option>
+                            <option value="软件问题">软件问题</option>
+                            <option value="硬件问题">硬件问题</option>
+                            <option value="系统问题">系统问题</option>
+                            <option value="安全问题">安全问题</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="knowledgeContent">内容 *</label>
+                        <textarea id="knowledgeContent" name="content" rows="8" required
+                                  placeholder="请输入详细的问题解决方案或说明"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="knowledgeTags">标签</label>
+                        <input type="text" id="knowledgeTags" name="tags" 
+                               placeholder="用逗号分隔多个标签">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeKnowledgeModal()">
+                            取消
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content delete-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> 确认删除</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>您确定要删除这个知识条目吗？</p>
+                    <p class="delete-item-title" id="deleteItemTitle"></p>
+                    <p class="delete-note">此操作不可撤销！</p>
+                </div>
+                <div class="delete-actions">
+                    <button class="btn btn-secondary" onclick="closeDeleteModal()">
+                        取消
+                    </button>
+                    <button class="btn btn-danger" onclick="confirmDelete()">
+                        <i class="fas fa-trash"></i> 确认删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content import-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-upload"></i> 导入知识库</h3>
+                <span class="close" onclick="closeImportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="import-instructions">
+                    <p>支持导入 CSV 或 JSON 格式的知识库数据</p>
+                    <p>CSV 格式：标题,分类,内容,标签</p>
+                    <p>JSON 格式：[{"title":"标题","category":"分类","content":"内容","tags":"标签"}]</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="importFile">选择文件</label>
+                    <input type="file" id="importFile" accept=".csv,.json" onchange="handleFileSelect(event)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="importContent">或直接粘贴内容</label>
+                    <textarea id="importContent" rows="6" placeholder="粘贴CSV或JSON内容"></textarea>
+                </div>
+                
+                <div class="import-actions">
+                    <button class="btn btn-secondary" onclick="closeImportModal()">
+                        取消
+                    </button>
+                    <button class="btn btn-primary" onclick="processImport()">
+                        <i class="fas fa-upload"></i> 开始导入
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>
