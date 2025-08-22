@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} - 用户交互查询</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 管理后台头部 -->
+        <header class="admin-header">
+            <div class="admin-logo">
+                <i class="fas fa-chart-line"></i>
+                <h1>{{ company_name }} 用户交互查询</h1>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='/admin'">
+                    <i class="fas fa-arrow-left"></i> 返回管理后台
+                </button>
+                <button class="btn btn-primary" onclick="exportInteractions()">
+                    <i class="fas fa-download"></i> 导出数据
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="admin-main">
+            <!-- 搜索和筛选 -->
+            <div class="search-filter">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索用户名、问题或回答内容..." class="search-input">
+                    <button class="search-btn" onclick="searchInteractions()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="filter-options">
+                    <select id="userFilter" class="filter-select" onchange="filterByUser()">
+                        <option value="">所有用户</option>
+                    </select>
+                    <select id="ratingFilter" class="filter-select" onchange="filterByRating()">
+                        <option value="">所有评分</option>
+                        <option value="1">1星</option>
+                        <option value="2">2星</option>
+                        <option value="3">3星</option>
+                        <option value="4">4星</option>
+                        <option value="5">5星</option>
+                    </select>
+                    <select id="sortBy" class="filter-select" onchange="sortInteractions()">
+                        <option value="time">按时间</option>
+                        <option value="rating">按评分</option>
+                        <option value="user">按用户</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 交互记录表格 -->
+            <div class="interactions-table-container">
+                <h3><i class="fas fa-comments"></i> 用户交互记录</h3>
+                <div class="table-wrapper">
+                    <table class="interactions-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>用户</th>
+                                <th>问题</th>
+                                <th>回答</th>
+                                <th>评分</th>
+                                <th>重新回答</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interactionsTableBody">
+                            <!-- 交互记录将在这里动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+                
+            <!-- 分页 -->
+            <div class="pagination" id="pagination">
+                <!-- 动态生成分页 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 交互详情模态框 -->
+    <div id="interactionDetailModal" class="modal">
+        <div class="modal-content interaction-detail-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> 交互详情</h3>
+                <span class="close" onclick="closeModal('interactionDetailModal')">&times;</span>
+            </div>
+            <div class="modal-body" id="interactionDetailContent">
+                <!-- 交互详情将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/interactions.js') }}"></script>
+</body>
+</html>

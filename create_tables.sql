@@ -86,3 +86,87 @@ SHOW TABLES;
 DESCRIBE interactions;
 DESCRIBE knowledge_base;
 DESCRIBE tickets;
+
+-- 创建revisions表
+CREATE TABLE IF NOT EXISTS revisions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    interaction_id INT NOT NULL,
+    feedback TEXT NOT NULL,
+    new_answer TEXT NOT NULL,
+    rating INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (interaction_id) REFERENCES interactions(id) ON DELETE CASCADE
+);
+-- 创建索引
+
+-- 7. 创建对话会话表 (新增)
+CREATE TABLE IF NOT EXISTS conversations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id VARCHAR(255) UNIQUE NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    session_id VARCHAR(255),
+    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status ENUM('active', 'closed') DEFAULT 'active',
+    topic VARCHAR(255),
+    context_summary TEXT,
+    
+    INDEX idx_conversation_id (conversation_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_session_id (session_id),
+    INDEX idx_status (status),
+    INDEX idx_start_time (start_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. 创建对话消息表 (新增)
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    message_type ENUM('user_question', 'ai_response') NOT NULL,
+    content TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    context_tokens TEXT,
+    relevance_score DECIMAL(3,2) DEFAULT 0.00,
+    parent_message_id INT NULL,
+    
+    INDEX idx_conversation_id (conversation_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_message_type (message_type),
+    INDEX idx_timestamp (timestamp),
+    INDEX idx_parent_message (parent_message_id),
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. 创建用户对话偏好表 (新增)
+CREATE TABLE IF NOT EXISTS user_conversation_preferences (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    preferred_context_length INT DEFAULT 5,
+    memory_enabled BOOLEAN DEFAULT TRUE,
+    auto_topic_detection BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY unique_user (user_id),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE INDEX idx_revisions_interaction_id ON revisions(interaction_id);
+CREATE INDEX idx_revisions_created_at ON revisions(created_at);
+
+-- 创建权限管理表
+CREATE TABLE IF NOT EXISTS user_permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    can_access_admin BOOLEAN DEFAULT FALSE,
+    can_manage_permissions BOOLEAN DEFAULT FALSE,
+    can_view_interactions BOOLEAN DEFAULT FALSE,
+    can_export_data BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100)
+);
+-- 创建索引
+CREATE INDEX idx_user_permissions_username ON user_permissions(username);
+CREATE INDEX idx_user_permissions_admin ON user_permissions(can_access_admin);

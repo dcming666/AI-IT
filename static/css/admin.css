@@ -1,5 +1,186 @@
 /* 管理后台专用样式 */
 
+/* 基础按钮样式 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c53030 0%, #a0aec0 100%);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+}
+
+/* 模态框样式 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close:hover {
+    opacity: 0.7;
+    transform: scale(1.1);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+/* 表单样式 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e5e9;
+}
+
 /* 管理后台容器 */
 .admin-container {
     min-height: 100vh;
@@ -487,34 +668,227 @@
     gap: 10px;
     padding: 20px;
     background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 20px;
 }
-
 .pagination button {
-    padding: 8px 12px;
+    padding: 8px 16px;
     border: 1px solid #e9ecef;
     background: white;
     color: #667eea;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 80px;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
 }
-
-.pagination button:hover {
+.pagination button:hover:not(:disabled) {
     background: #667eea;
     color: white;
     border-color: #667eea;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
-.pagination button.active {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
+.pagination button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
-
 .pagination button:disabled {
     background: #f8f9fa;
     color: #6c757d;
     cursor: not-allowed;
+    opacity: 0.6;
+}
+.pagination span {
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 15px;
+}
+
+/* 权限管理表格样式 */
+.permissions-table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-top: 25px;
+}
+
+.permissions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.permissions-table th,
+.permissions-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.permissions-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.permissions-table td {
+    font-size: 14px;
+    color: #333;
+}
+
+.permission-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.permission-badge.granted {
+    background: #d4edda;
+    color: #155724;
+}
+
+.permission-badge.denied {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.permission-badge i {
+    font-size: 10px;
+}
+
+/* 权限管理按钮样式 */
+.btn-edit {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-1px);
+}
+
+/* 权限选项样式 */
+.permission-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    position: relative;
+    padding-left: 30px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label:hover input ~ .checkmark {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.checkbox-label input:checked ~ .checkmark {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-label input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-label .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* 警告文本样式 */
+.warning-text {
+    color: #dc3545;
+    font-weight: 500;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+/* 用户名单元格样式 */
+.username-cell .username-text {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* 时间单元格样式 */
+.created-cell .time-text,
+.updated-cell .time-text {
+    color: #6c757d;
+    font-size: 12px;
 }
 
 /* 知识模态框 */
@@ -699,6 +1073,262 @@
     font-size: 0.75rem;
 }
 
+/* 交互表格样式 */
+.interactions-table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-top: 25px;
+}
+
+.interactions-table-container h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.interactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.interactions-table th {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+}
+
+.interactions-table th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.interactions-table th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.interactions-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: top;
+}
+
+.interactions-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.interactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* 交互表格列样式 */
+.time-cell {
+    min-width: 120px;
+}
+
+.time-text {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.user-cell {
+    min-width: 100px;
+}
+
+.user-text {
+    font-weight: 600;
+    color: #333;
+}
+
+.question-cell {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.question-text {
+    color: #333;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.answer-cell {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.answer-text {
+    color: #666;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rating-cell {
+    min-width: 80px;
+    text-align: center;
+}
+
+.rating-stars {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+}
+
+.rating-stars i {
+    font-size: 12px;
+    color: #ffd700;
+}
+
+.no-rating {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.revision-cell {
+    min-width: 100px;
+    text-align: center;
+}
+
+.revision-count {
+    background: #667eea;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.no-revision {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.actions-cell {
+    min-width: 80px;
+    text-align: center;
+}
+
+.btn-view-detail {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.btn-view-detail:hover {
+    background: #5a67d8;
+    transform: translateY(-1px);
+}
+
+/* 交互详情模态框 */
+.interaction-detail-modal {
+    max-width: 900px;
+    max-height: 80vh;
+}
+
+.interaction-detail-content {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.interaction-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.interaction-header h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.interaction-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.interaction-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.interaction-section h5 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.interaction-section h5 i {
+    color: #667eea;
+}
+
+.interaction-content {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+    line-height: 1.5;
+    color: #333;
+}
+
+.revision-item {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #28a745;
+}
+
+.revision-item:last-child {
+    margin-bottom: 0;
+}
+
+.revision-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.revision-content {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    line-height: 1.4;
+    color: #333;
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
     .knowledge-table-container {
@@ -786,6 +1416,266 @@
     .btn-sm {
         padding: 8px 12px;
         font-size: 0.9rem;
+    }
+
+    .interactions-table-container {
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .interactions-table-container h3 {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+    }
+    
+    .interactions-table {
+        font-size: 0.75rem;
+    }
+    
+    .interactions-table th,
+    .interactions-table td {
+        padding: 8px 5px;
+    }
+    
+    .question-cell,
+    .answer-cell {
+        min-width: 150px;
+        max-width: 200px;
+    }
+    
+    .interaction-detail-modal {
+        max-width: 95%;
+    }
+
+    .permissions-table-container {
+        padding: 15px;
+        margin-top: 15px;
+    }
+    
+    .permissions-table th,
+    .permissions-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    
+    .permission-badge {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .btn-edit,
+    .btn-delete {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+    
+    .permission-options {
+        gap: 8px;
+    }
+    
+    .checkbox-label {
+        font-size: 12px;
+        padding-left: 25px;
+    }
+    
+    .checkmark {
+        height: 16px;
+        width: 16px;
+    }
+    
+    .checkbox-label .checkmark:after {
+        left: 4px;
+        top: 1px;
+        width: 3px;
+        height: 6px;
+    }
+}
+
+/* 所有用户模态框样式 */
+.all-users-modal {
+    max-width: 600px;
+    max-height: 80vh;
+}
+
+.users-search {
+    margin-bottom: 20px;
+}
+
+.users-search .search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.users-search .search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.users-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    background: white;
+    transition: background-color 0.3s ease;
+}
+
+.user-item:last-child {
+    border-bottom: none;
+}
+
+.user-item:hover {
+    background: #f8f9fa;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.user-email {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-badge.has-permission {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.no-permission {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.user-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-add-permission {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.3s ease;
+}
+
+.btn-add-permission:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+    transform: translateY(-1px);
+}
+
+.btn-view-permission {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.3s ease;
+}
+
+.btn-view-permission:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+}
+
+.no-users {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-users i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-users p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .all-users-modal {
+        max-width: 95%;
+        margin: 20px auto;
+    }
+    
+    .user-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .user-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .btn-add-permission,
+    .btn-view-permission {
+        padding: 8px 16px;
+        font-size: 12px;
     }
 }
 

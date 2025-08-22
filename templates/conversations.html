@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话历史 - AI-IT支持系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .conversation-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .conversation-list {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .conversation-detail {
+            flex: 2;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .conversation-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .conversation-item:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        
+        .conversation-item.active {
+            border-color: #667eea;
+            background-color: #f0f2ff;
+        }
+        
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .conversation-topic {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .conversation-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-closed {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .conversation-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .conversation-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message.user-message {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .user-message .message-avatar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .ai-message .message-avatar {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .message-content {
+            max-width: 70%;
+        }
+        
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        
+        .user-message .message-bubble {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-message .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
+        .conversation-controls {
+            display: flex;
+            gap: 10px;
+            padding: 15px 0;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 头部 -->
+        <header class="admin-header">
+            <div class="header-content">
+                <h1><i class="fas fa-comments"></i> 对话历史</h1>
+                <p>查看和管理您的所有对话记录</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-arrow-left"></i> 返回主页
+                </button>
+                <button class="btn btn-warning" onclick="forceNewConversation()">
+                    <i class="fas fa-plus-circle"></i> 强制新对话
+                </button>
+                <button class="btn btn-primary" onclick="startNewConversation()">
+                    <i class="fas fa-plus"></i> 新对话
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要内容 -->
+        <div class="conversation-container">
+            <!-- 左侧：对话列表 -->
+            <div class="conversation-list">
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="搜索对话..." id="searchInput">
+                </div>
+                
+                <div id="conversationList">
+                    <!-- 对话列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+
+            <!-- 右侧：对话详情 -->
+            <div class="conversation-detail">
+                <div id="conversationDetail">
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <h3>选择对话</h3>
+                        <p>从左侧选择一个对话来查看详细信息</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新对话模态框 -->
+    <div id="newConversationModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>开始新对话</h3>
+                <span class="close" onclick="closeNewConversationModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="conversationTopic">对话主题（可选）</label>
+                    <input type="text" id="conversationTopic" placeholder="例如：硬件问题咨询" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeNewConversationModal()">取消</button>
+                <button class="btn btn-primary" onclick="confirmNewConversation()">开始新对话</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/conversations.js') }}"></script>
+</body>
+</html>

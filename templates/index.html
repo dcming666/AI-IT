@@ -3,263 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ company_name }} - AI技术支持助手</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>AI-IT支持系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- 头部 -->
         <header class="header">
-            <div class="logo">
-                <i class="fas fa-robot"></i>
-                <h1>{{ company_name }} AI助手</h1>
+            <div class="header-content">
+                <h1>AI-IT支持系统</h1>
             </div>
-            <div class="header-actions">
-                <button class="btn btn-secondary" onclick="showStats()">
-                    <i class="fas fa-chart-bar"></i>
-                    统计
+            
+            <!-- 右上角按钮区域 -->
+            <div class="top-right-buttons">
+                <button class="btn-header" onclick="showConversations()">
+                    <i class="fas fa-comments"></i>
+                    对话历史
                 </button>
-                <button class="btn btn-secondary" onclick="showKnowledgeBase()">
-                    <i class="fas fa-book"></i>
-                    知识库
-                </button>
-                <button class="btn btn-secondary" onclick="window.location.href='/admin'">
+                <button class="btn-header" onclick="showAdminDashboard()">
                     <i class="fas fa-cog"></i>
                     管理
                 </button>
+                <button class="btn-header" onclick="showKnowledgeBase()">
+                    <i class="fas fa-database"></i>
+                    知识库
+                </button>
+                <div class="user-info">
+                    <span class="username" id="username">加载中...</span>
+                    <button class="btn-logout" onclick="logout()">退出</button>
+                </div>
             </div>
         </header>
 
         <!-- 主要内容 -->
         <main class="main-content">
-            <!-- 聊天区域 -->
+            <!-- 聊天界面 -->
             <div class="chat-container">
                 <div class="chat-header">
-                    <h2><i class="fas fa-comments"></i> 技术支持对话</h2>
-                    <p>请描述您遇到的技术问题，AI助手将为您提供解决方案</p>
-                </div>
-                
-                <div class="chat-messages" id="chatMessages">
-                    <!-- 欢迎消息 -->
-                    <div class="message ai-message">
-                        <div class="message-avatar">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <div class="message-content">
-                            <div class="message-text">
-                                您好！我是{{ company_name }}的AI技术支持助手。我可以帮助您解决各种IT技术问题，包括：
-                                <ul>
-                                    <li>网络连接问题</li>
-                                    <li>软件使用问题</li>
-                                    <li>硬件故障排查</li>
-                                    <li>系统配置问题</li>
-                                </ul>
-                                请描述您遇到的问题，我会尽力为您提供帮助！
-                            </div>
-                            <div class="message-time">现在</div>
-                        </div>
+                    <h2><i class="fas fa-comments"></i> AI智能助手</h2>
+                    <p>请描述您的问题，我将为您提供专业的IT支持</p>
+                    <div id="contextIndicator" class="context-indicator" style="display: none;">
+                        <i class="fas fa-link"></i>
+                        <span id="contextText">正在使用对话上下文</span>
+                        <button class="btn-context-clear" onclick="clearConversationContext()">
+                            <i class="fas fa-times"></i> 清除上下文
+                        </button>
                     </div>
                 </div>
                 
+                <div class="chat-messages" id="chatMessages">
+                    <!-- 消息将在这里显示 -->
+                </div>
+                
                 <!-- 输入区域 -->
-                <div class="chat-input-container">
-                    <div class="input-wrapper">
+                <div class="input-container">
+                    <div class="input-bar">
                         <textarea 
-                            id="questionInput" 
-                            placeholder="请描述您的技术问题..."
-                            rows="3"
-                            maxlength="500"
+                            id="userInput" 
+                            placeholder="请输入您的问题..."
+                            rows="1"
                         ></textarea>
-                        <div class="input-actions">
-                            <span class="char-count" id="charCount">0/500</span>
-                            <button class="btn btn-primary" id="sendBtn" onclick="sendQuestion()">
-                                <i class="fas fa-paper-plane"></i> 发送
+                        
+                        <div class="input-buttons">
+                            <div class="answer-mode-selector">
+                                <button class="mode-toggle-btn" id="modeToggle">
+                                    <span id="currentMode">混合模式</span>
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
+                                <div class="mode-dropdown" id="modeDropdown">
+                                    <div class="mode-option" data-mode="ai_only">
+                                        <i class="fas fa-robot"></i>
+                                        <span>AI回答</span>
+                                    </div>
+                                    <div class="mode-option" data-mode="knowledge_only">
+                                        <i class="fas fa-database"></i>
+                                        <span>TOMRA &nbsp; &nbsp; 知识库</span>
+                                    </div>
+                                    <div class="mode-option" data-mode="hybrid">
+                                        <i class="fas fa-magic"></i>
+                                        <span>混合模式</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-send" id="sendBtn" onclick="sendQuestion()">
+                                <i class="fas fa-paper-plane"></i>
+                                发送
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
+    </div>
 
-        <!-- 统计模态框 -->
-        <div id="statsModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-chart-bar"></i> 系统统计</h3>
-                    <span class="close" onclick="closeModal('statsModal')">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-value" id="totalInteractions">-</div>
-                            <div class="stat-label">总交互数</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="escalatedCount">-</div>
-                            <div class="stat-label">转人工数</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="avgConfidence">-</div>
-                            <div class="stat-label">平均置信度</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="knowledgeCount">-</div>
-                            <div class="stat-label">知识库条目</div>
-                        </div>
+    <!-- 评分和重新回答选择模态框 -->
+    <div id="ratingRevisionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-star"></i> 评分与反馈</h3>
+                <span class="close" onclick="closeRatingRevisionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="rating-section">
+                    <h4>请为这个回答评分：</h4>
+                    <div class="stars">
+                        <i class="fas fa-star" data-rating="1"></i>
+                        <i class="fas fa-star" data-rating="2"></i>
+                        <i class="fas fa-star" data-rating="3"></i>
+                        <i class="fas fa-star" data-rating="4"></i>
+                        <i class="fas fa-star" data-rating="5"></i>
                     </div>
+                    <div class="rating-display">请选择评分</div>
+                </div>
+                <div class="action-options">
+                    <h4>您希望：</h4>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="submitRatingOnly()">
+                            <i class="fas fa-star"></i> 只提交评分
+                        </button>
+                        <button class="btn btn-warning" onclick="submitRatingAndRevision()">
+                            <i class="fas fa-redo"></i> 评分并重新回答
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeRatingRevisionModal()">取消</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 知识库查看模态框 -->
-        <div id="knowledgeModal" class="modal">
-            <div class="modal-content knowledge-modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-book"></i> 知识库查看</h3>
-                    <span class="close" onclick="closeModal('knowledgeModal')">&times;</span>
+    <!-- 反馈模态框 -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>请评价这个回答</h3>
+                <span class="close" onclick="closeFeedbackModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="rating-section">
+                    <div class="stars">
+                        <i class="fas fa-star" data-rating="1"></i>
+                        <i class="fas fa-star" data-rating="2"></i>
+                        <i class="fas fa-star" data-rating="3"></i>
+                        <i class="fas fa-star" data-rating="4"></i>
+                        <i class="fas fa-star" data-rating="5"></i>
+                    </div>
+                    <p class="rating-text">请选择评分</p>
                 </div>
-                <div class="modal-body">
-                    <!-- 搜索和筛选 -->
-                    <div class="knowledge-search">
-                        <div class="search-input">
-                            <input type="text" id="knowledgeSearch" placeholder="搜索知识库..." onkeyup="searchKnowledge()">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <div class="category-filter">
-                            <select id="categoryFilter" onchange="filterByCategory()">
-                                <option value="">所有分类</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- 知识库列表 -->
-                    <div class="knowledge-list-container">
-                        <div id="knowledgeList" class="knowledge-list">
-                            <!-- 知识库条目将在这里动态加载 -->
-                        </div>
-                    </div>
-                    
-                    <!-- 分页 -->
-                    <div class="knowledge-pagination">
-                        <button id="prevPage" onclick="changePage(-1)" disabled>上一页</button>
-                        <span id="pageInfo">第 1 页，共 1 页</span>
-                        <button id="nextPage" onclick="changePage(1)" disabled>下一页</button>
-                    </div>
+                <div class="feedback-actions">
+                    <button class="btn btn-primary" onclick="submitFeedback()">提交评分</button>
+                    <button class="btn btn-secondary" onclick="requestRevision()">请求重新回答</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 知识详情模态框 -->
-        <div id="knowledgeDetailModal" class="modal">
-            <div class="modal-content knowledge-detail-modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-file-alt"></i> 知识详情</h3>
-                    <span class="close" onclick="closeModal('knowledgeDetailModal')">&times;</span>
+    <!-- 重新回答模态框 -->
+    <div id="revisionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>请求重新回答</h3>
+                <span class="close" onclick="closeRevisionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="revision-options">
+                    <label><input type="radio" name="revisionType" value="more_detail" checked> 需要更详细的解释</label>
+                    <label><input type="radio" name="revisionType" value="simpler"> 需要更简单的解释</label>
+                    <label><input type="radio" name="revisionType" value="different_approach"> 需要不同的解决方案</label>
+                    <label><input type="radio" name="revisionType" value="custom"> 自定义要求</label>
                 </div>
-                <div class="modal-body">
-                    <div class="knowledge-detail-content">
-                        <div class="detail-header">
-                            <h4 id="detailTitle"></h4>
-                            <div class="detail-meta">
-                                <span class="category-badge" id="detailCategory"></span>
-                                <span class="tags-badge" id="detailTags"></span>
-                            </div>
-                        </div>
-                        <div class="detail-body">
-                            <div id="detailContent"></div>
-                        </div>
-                        <div class="detail-footer">
-                            <small>创建时间: <span id="detailCreated"></span></small>
-                            <small>更新时间: <span id="detailUpdated"></span></small>
-                        </div>
-                    </div>
+                <div class="custom-feedback" id="customFeedback" style="display: none;">
+                    <textarea id="customFeedbackText" placeholder="请描述您的具体需求..."></textarea>
+                </div>
+                <div class="revision-actions">
+                    <button class="btn btn-primary" onclick="submitRevision()">提交请求</button>
+                    <button class="btn btn-secondary" onclick="closeRevisionModal()">取消</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 管理界面模态框 -->
-        <div id="adminModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-cog"></i> 知识库管理</h3>
-                    <span class="close" onclick="closeModal('adminModal')">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="admin-tabs">
-                        <button class="tab-btn active" onclick="switchTab('add')">添加知识</button>
-                        <button class="tab-btn" onclick="switchTab('list')">知识列表</button>
-                    </div>
-                    
-                    <!-- 添加知识标签页 -->
-                    <div id="addTab" class="tab-content active">
-                        <form id="knowledgeForm">
-                            <div class="form-group">
-                                <label for="title">标题</label>
-                                <input type="text" id="title" name="title" required maxlength="255">
-                            </div>
-                            <div class="form-group">
-                                <label for="category">分类</label>
-                                <select id="category" name="category">
-                                    <option value="">选择分类</option>
-                                    <option value="网络">网络</option>
-                                    <option value="软件">软件</option>
-                                    <option value="硬件">硬件</option>
-                                    <option value="系统">系统</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="content">内容</label>
-                                <textarea id="content" name="content" rows="6" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">添加知识条目</button>
-                        </form>
-                    </div>
-                    
-                    <!-- 知识列表标签页 -->
-                    <div id="listTab" class="tab-content">
-                        <div class="knowledge-list" id="knowledgeList">
-                            <!-- 知识条目将在这里动态加载 -->
-                        </div>
-                    </div>
-                </div>
+    <!-- 知识库模态框 -->
+    <div id="knowledgeModal" class="modal">
+        <div class="modal-content knowledge-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-database"></i> 知识库</h3>
+                <span class="close" onclick="closeModal('knowledgeModal')">&times;</span>
             </div>
-        </div>
-
-        <!-- 满意度反馈确认弹窗 -->
-        <div id="feedbackModal" class="modal">
-            <div class="modal-content feedback-modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-star"></i> 满意度反馈</h3>
-                    <span class="close" onclick="closeFeedbackModal()">&times;</span>
+            <div class="modal-body">
+                <div class="knowledge-search">
+                    <input type="text" id="knowledgeSearch" placeholder="搜索知识库..." onkeyup="searchKnowledgeRealTime()">
+                    <select id="categoryFilter" onchange="filterByCategory()">
+                        <option value="">所有分类</option>
+                    </select>
                 </div>
-                <div class="modal-body">
-                    <div class="feedback-content">
-                        <div class="feedback-icon">
-                            <i class="fas fa-question-circle"></i>
-                        </div>
-                        <div class="feedback-message" id="feedbackMessage">
-                            您给出了<span id="feedbackRating">3</span>星评价，表示对回答不满意。
-                        </div>
-                        <div class="feedback-question">
-                            是否希望我根据您的反馈重新生成一个更好的回答？
-                        </div>
-                        <div class="feedback-actions">
-                            <button class="btn btn-secondary" onclick="closeFeedbackModal()">
-                                <i class="fas fa-times"></i> 仅提交评分
-                            </button>
-                            <button class="btn btn-primary" onclick="confirmFeedbackRevision()">
-                                <i class="fas fa-redo"></i> 重新生成回答
-                            </button>
-                        </div>
-                    </div>
+                <div class="knowledge-list" id="knowledgeList">
+                    <!-- 知识条目将在这里显示 -->
+                </div>
+                <div class="knowledge-pagination">
+                    <button id="prevPage" onclick="changePage(-1)">上一页</button>
+                    <span id="pageInfo">第 1 页，共 1 页</span>
+                    <button id="nextPage" onclick="changePage(1)">下一页</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+        });
+        
+        function checkLoginStatus() {
+            fetch('/api/check-login')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        document.getElementById('username').textContent = data.username;
+                    } else {
+                        // 如果未登录，重定向到登录页面
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(error => {
+                    console.error('检查登录状态失败:', error);
+                    window.location.href = '/login';
+                });
+        }
+        
+        function logout() {
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 退出成功后重定向到登录页面
+                    window.location.href = '/login';
+                }
+            })
+            .catch(error => {
+                console.error('退出失败:', error);
+                // 即使退出失败，也重定向到登录页面
+                window.location.href = '/login';
+            });
+        }
+    </script>
 </body>
 </html>

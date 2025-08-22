@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ company_name }} - 知识库管理后台</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -19,6 +18,12 @@
             <div class="admin-actions">
                 <button class="btn btn-secondary" onclick="window.location.href='/'">
                     <i class="fas fa-arrow-left"></i> 返回首页
+                </button>
+                <button class="btn btn-info" onclick="window.location.href='/admin/interactions'">
+                    <i class="fas fa-chart-line"></i> 用户交互查询
+                </button>
+                <button class="btn btn-warning" onclick="window.location.href='/admin/permissions'">
+                    <i class="fas fa-user-shield"></i> 权限管理
                 </button>
                 <button class="btn btn-primary" onclick="showAddKnowledgeModal()">
                     <i class="fas fa-plus"></i> 添加知识
